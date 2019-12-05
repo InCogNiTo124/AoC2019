@@ -3,66 +3,63 @@ INPUT = '''3,225,1,225,6,6,1100,1,238,225,104,0,1101,34,7,225,101,17,169,224,100
 #INPUT = '''3,21,1008,21,8,20,1005,20,22,107,8,21,20,1006,20,31,1106,0,36,98,0,0,1002,21,125,20,4,20,1105,1,46,104,999,1105,1,46,1101,1000,1,20,4,20,1105,1,46,98,99'''
 MEMORY = [t for t in map(int, INPUT.split(','))]
 
-def add(a, b, c, is_a_imm=False, is_b_imm=False):
-    if not is_a_imm:
-        a = MEMORY[a]
-    if not is_b_imm:
-        b = MEMORY[b]
+def prepare(param_count, stores=False):
+    def decorator(f):
+        def wrapper(*args, **kwargs):
+            params = list(args[:param_count])
+            param_modes = list(args[param_count+int(stores):])
+            while len(param_modes) < len(params):
+                param_modes.append(False)
+            for i in range(param_count):
+                if not param_modes[i]:
+                    params[i] = MEMORY[params[i]]
+            args = tuple(params + ([args[param_count]] if stores else []))
+            return f(*args)
+        return wrapper
+    return decorator
+
+@prepare(2, stores=True)
+def add(a, b, c):
     MEMORY[c] = a + b
     return True
 
-def mul(a, b, c, is_a_imm=False, is_b_imm=False):
-    if not is_a_imm:
-        a = MEMORY[a]
-    if not is_b_imm:
-        b = MEMORY[b]
+@prepare(2, stores=True)
+def mul(a, b, c):
     MEMORY[c] = a*b
     return True
 
-def read(c, *args, **kwargs):
+@prepare(0, stores=True)
+def read(c):
     MEMORY[c] = int(input())
     return True
 
-def out(address, is_imm=False, *args, **kwargs):
+def out(address, is_imm=False):
     print(MEMORY[address] if not is_imm else address)
     return True
 
-def jit(a, b, is_a_imm=False, is_b_imm=False):
+@prepare(2)
+def jit(a, b):
     global i
-    if not is_a_imm:
-        a = MEMORY[a]
-    if not is_b_imm:
-        b = MEMORY[b]
-
     if a != 0:
         i = b
         return False
     return True
 
-def jif(a, b, is_a_imm=False, is_b_imm=False):
+@prepare(2)
+def jif(a, b):
     global i
-    if not is_a_imm:
-        a = MEMORY[a]
-    if not is_b_imm:
-        b = MEMORY[b]
     if a == 0:
         i = b
         return False
     return True
 
-def lt(a, b, c, is_a_imm=False, is_b_imm=False):
-    if not is_a_imm:
-        a = MEMORY[a]
-    if not is_b_imm:
-        b = MEMORY[b]
+@prepare(2, stores=True)
+def lt(a, b, c):
     MEMORY[c] = 1 if a < b else 0
     return True
 
-def eq(a, b, c, is_a_imm=False, is_b_imm=False):
-    if not is_a_imm:
-        a = MEMORY[a]
-    if not is_b_imm:
-        b = MEMORY[b]
+@prepare(2, stores=True)
+def eq(a, b, c):
     MEMORY[c] = 1 if a == b else 0
     return True
     
@@ -83,7 +80,6 @@ def read_opcode():
     opcode = MEMORY[i]
     instr = int(str(opcode)[-2:])
     params = tuple(reversed([t for t in map(bool, map(int, str(opcode)[:-2]))]))
-    #print("instr:", instr, "\tparams:", params, end=" ")
     i += 1
     return instr, params
 
@@ -94,6 +90,5 @@ def handle_params(opcode):
 while MEMORY[i] != 99:
     opcode, param_args = read_opcode()
     args = handle_params(opcode)
-    #print("\targs:", args)
     if instructions[opcode]["f"](*args, *param_args):
         i += instructions[opcode]["argc"]
