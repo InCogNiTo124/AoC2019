@@ -33,8 +33,9 @@ def read(c):
     MEMORY[c] = int(input())
     return True
 
-def out(address, is_imm=False):
-    print(MEMORY[address] if not is_imm else address)
+@prepare(1)
+def out(x):
+    print(x)
     return True
 
 @prepare(2)
