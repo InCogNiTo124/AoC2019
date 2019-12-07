@@ -1,0 +1,9 @@
+import sys
+print(sys.argv[1])
+try:
+    while True:
+        x = input()
+        print(x)
+except:
+    pass
+
